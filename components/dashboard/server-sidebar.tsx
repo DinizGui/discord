@@ -1,0 +1,83 @@
+'use client'
+
+import { useApp } from '@/lib/app-context'
+import { cn } from '@/lib/utils'
+import { Plus, Settings, Zap } from 'lucide-react'
+import Image from 'next/image'
+
+export function ServerSidebar() {
+  const { servers, selectedServer, selectServer, setModal, setView } = useApp()
+
+  return (
+    <div className="flex flex-col items-center w-[72px] bg-sidebar py-4 gap-2 border-r border-sidebar-border">
+      {/* Home / Logo */}
+      <button
+        onClick={() => selectServer(null)}
+        className={cn(
+          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 group",
+          "bg-primary/10 hover:bg-primary/20 hover:rounded-xl",
+          !selectedServer && "bg-primary rounded-xl"
+        )}
+      >
+        <Zap className={cn(
+          "w-6 h-6 transition-colors",
+          !selectedServer ? "text-primary-foreground" : "text-primary group-hover:text-primary"
+        )} />
+      </button>
+
+      {/* Divider */}
+      <div className="w-8 h-[2px] bg-sidebar-border my-2" />
+
+      {/* Server list */}
+      <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar px-2">
+        {servers.map((server, index) => (
+          <div key={server.id} className="relative group">
+            {/* Active indicator */}
+            <div className={cn(
+              "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-1 rounded-r-full bg-foreground transition-all duration-200",
+              selectedServer?.id === server.id ? "h-10" : "h-0 group-hover:h-5"
+            )} />
+            
+            <button
+              onClick={() => selectServer(server)}
+              className={cn(
+                "w-12 h-12 rounded-2xl overflow-hidden transition-all duration-200 hover:rounded-xl relative",
+                selectedServer?.id === server.id && "rounded-xl"
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <Image
+                src={server.icon}
+                alt={server.name}
+                fill
+                className="object-cover"
+              />
+              
+              {/* Tooltip */}
+              <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-2 bg-popover rounded-lg shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-border">
+                <span className="text-sm font-medium text-popover-foreground">{server.name}</span>
+                <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-popover" />
+              </div>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Add server button */}
+      <button
+        onClick={() => setModal('create-server')}
+        className="w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-2 hover:bg-online/20 hover:rounded-xl transition-all duration-200 group border border-dashed border-border hover:border-online"
+      >
+        <Plus className="w-6 h-6 text-online transition-transform group-hover:rotate-90 duration-200" />
+      </button>
+
+      {/* Settings */}
+      <button
+        onClick={() => setView('profile')}
+        className="w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-2 hover:bg-surface-3 hover:rounded-xl transition-all duration-200 mt-2"
+      >
+        <Settings className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+      </button>
+    </div>
+  )
+}
