@@ -1,48 +1,46 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useApp } from '@/lib/app-context'
-import { getChannelMessages, getUserById, formatTimestamp, type Message } from '@/lib/mock-data'
+import { formatTimestamp, type ChatMessage } from '@/lib/chat-types'
 import { cn } from '@/lib/utils'
-import { Hash, AtSign, Smile, PlusCircle, Gift, ImageIcon, Send, Bell, Pin, Users, Search, Inbox } from 'lucide-react'
+import { Hash, Smile, PlusCircle, Gift, ImageIcon, Send, Bell, Pin, Users, Search, Inbox } from 'lucide-react'
 import Image from 'next/image'
 
-function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
-  const user = getUserById(message.userId)
-  
-  if (!user) return null
+function MessageBubble({ message, isFirst }: { message: ChatMessage; isFirst: boolean }) {
+  const { currentUser } = useApp()
+
+  const isMe = Boolean(currentUser?.id) && message.userId === currentUser?.id
+  const name = isMe ? (currentUser?.name ?? 'Você') : (message.authorName ?? 'Usuário')
+  const avatar = isMe
+    ? currentUser?.avatar || '/placeholder.svg'
+    : message.authorAvatar || '/placeholder.svg'
 
   return (
-    <div className={cn(
-      "flex gap-4 px-4 py-1 hover:bg-surface-2/50 transition-colors group animate-fade-in",
-      isFirst && "mt-4"
-    )}>
+    <div
+      className={cn(
+        'flex gap-4 px-4 py-1 hover:bg-surface-2/50 transition-colors group animate-fade-in',
+        isFirst && 'mt-4',
+      )}
+    >
       {isFirst ? (
         <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
-          <Image
-            src={user.avatar}
-            alt={user.name}
-            width={40}
-            height={40}
-            className="object-cover"
-          />
+          <Image src={avatar} alt={name} width={40} height={40} className="object-cover" />
         </div>
       ) : (
         <div className="w-10 shrink-0 flex items-center justify-center">
           <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-            {formatTimestamp(message.timestamp)}
+            {formatTimestamp(new Date(message.timestamp))}
           </span>
         </div>
       )}
-      
+
       <div className="flex-1 min-w-0">
         {isFirst && (
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="font-semibold text-foreground hover:underline cursor-pointer">
-              {user.name}
-            </span>
+            <span className="font-semibold text-foreground hover:underline cursor-pointer">{name}</span>
             <span className="text-xs text-muted-foreground">
-              {formatTimestamp(message.timestamp)}
+              {formatTimestamp(new Date(message.timestamp))}
             </span>
           </div>
         )}
@@ -54,7 +52,7 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
 
 function EmptyChat() {
   const { selectedChannel } = useApp()
-  
+
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center max-w-sm mx-auto px-4">
@@ -73,40 +71,73 @@ function EmptyChat() {
 }
 
 export function ChatArea() {
-  const { selectedChannel, selectedServer } = useApp()
+  const { selectedChannel, selectedServer, currentUser } = useApp()
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (selectedChannel) {
-      setMessages(getChannelMessages(selectedChannel.id))
+  const loadMessages = useCallback(async (channelId: string) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/messages/channel?channelId=${encodeURIComponent(channelId)}`)
+      if (!res.ok) {
+        setMessages([])
+        return
+      }
+      const data = await res.json()
+      const raw = (data.messages as ChatMessage[]) ?? []
+      setMessages(
+        raw.map((m) => ({
+          ...m,
+          timestamp: new Date(m.timestamp as unknown as string),
+        })),
+      )
+    } finally {
+      setLoading(false)
     }
-  }, [selectedChannel])
+  }, [])
+
+  useEffect(() => {
+    if (selectedChannel?.id) {
+      void loadMessages(selectedChannel.id)
+    } else {
+      setMessages([])
+    }
+  }, [selectedChannel?.id, loadMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim() || !selectedChannel) return
-
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      channelId: selectedChannel.id,
-      userId: 'user-1',
-      content: message,
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, newMessage])
+    const content = message.trim()
     setMessage('')
+
+    const res = await fetch('/api/messages/channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channelId: selectedChannel.id, content }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      const m = data.message as ChatMessage
+      if (m) {
+        setMessages((prev) => [
+          ...prev,
+          { ...m, timestamp: new Date(m.timestamp as unknown as string) },
+        ])
+      }
+    } else {
+      setMessage(content)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      void handleSendMessage()
     }
   }
 
@@ -117,7 +148,7 @@ export function ChatArea() {
           <div className="w-24 h-24 rounded-3xl bg-surface-2 flex items-center justify-center mx-auto mb-6">
             <Inbox className="w-12 h-12 text-muted-foreground" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-3">Bem-vindo ao Fiadaputins</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-3">Bem-vindo ao Aura</h2>
           <p className="text-muted-foreground mb-6">
             Selecione um servidor na barra lateral para começar a conversar com sua comunidade.
           </p>
@@ -136,142 +167,66 @@ export function ChatArea() {
     )
   }
 
-  // Group messages by user for better visual hierarchy
-  const groupedMessages: { message: Message; isFirst: boolean }[] = messages.map((msg, index) => ({
+  const groupedMessages: { message: ChatMessage; isFirst: boolean }[] = messages.map((msg, index) => ({
     message: msg,
-    isFirst: index === 0 || 
+    isFirst:
+      index === 0 ||
       messages[index - 1].userId !== msg.userId ||
-      (msg.timestamp.getTime() - messages[index - 1].timestamp.getTime()) > 300000 // 5 min gap
+      new Date(msg.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 300000,
   }))
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
-      {/* Channel header */}
-      <div className="h-14 px-4 flex items-center justify-between border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          <Hash className="w-5 h-5 text-muted-foreground" />
-          <span className="font-semibold text-foreground">{selectedChannel.name}</span>
-          {selectedChannel.description && (
-            <>
-              <div className="w-px h-5 bg-border mx-2" />
-              <span className="text-sm text-muted-foreground truncate max-w-xs">
-                {selectedChannel.description}
-              </span>
-            </>
-          )}
+    <div className="flex-1 flex flex-col bg-background min-w-0">
+      <div className="h-14 px-4 flex items-center justify-between border-b border-border shadow-sm">
+        <div className="flex items-center gap-2 min-w-0">
+          <Hash className="w-5 h-5 text-muted-foreground shrink-0" />
+          <span className="font-semibold truncate">{selectedChannel.name}</span>
         </div>
-        
-        <div className="flex items-center gap-1">
-          <button className="p-2 hover:bg-surface-2 rounded-md transition-colors">
-            <Bell className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <button className="p-2 hover:bg-surface-2 rounded-md transition-colors">
-            <Pin className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <button className="p-2 hover:bg-surface-2 rounded-md transition-colors">
-            <Users className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <div className="relative ml-2">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar"
-              className="h-8 w-36 pl-9 pr-3 rounded-md bg-surface-2 border-none text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+        <div className="flex items-center gap-4 text-muted-foreground">
+          <Bell className="w-5 h-5 cursor-pointer hover:text-foreground" />
+          <Pin className="w-5 h-5 cursor-pointer hover:text-foreground" />
+          <Users className="w-5 h-5 cursor-pointer hover:text-foreground" />
+          <Search className="w-5 h-5 cursor-pointer hover:text-foreground" />
         </div>
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {messages.length === 0 ? (
+        {loading ? (
+          <div className="p-4 text-sm text-muted-foreground">Carregando mensagens…</div>
+        ) : messages.length === 0 ? (
           <EmptyChat />
         ) : (
-          <div className="py-4">
-            {groupedMessages.map(({ message, isFirst }) => (
-              <MessageBubble key={message.id} message={message} isFirst={isFirst} />
+          <>
+            {groupedMessages.map(({ message: msg, isFirst }) => (
+              <MessageBubble key={msg.id} message={msg} isFirst={isFirst} />
             ))}
             <div ref={messagesEndRef} />
-          </div>
+          </>
         )}
       </div>
 
-      {/* Message input - Modern Composer */}
-      <div className="px-4 pb-4 pt-2 shrink-0">
-        <div className="relative bg-surface-1 rounded-2xl border border-border shadow-lg overflow-hidden transition-all focus-within:border-primary/50 focus-within:shadow-[0_0_0_1px_var(--primary),0_4px_20px_-4px_var(--glow)]">
-          {/* Attachment preview area (hidden when empty) */}
-          {message.trim() && (
-            <div className="absolute -top-1 left-4 right-4 h-1 bg-gradient-to-r from-primary/60 via-accent/60 to-primary/60 rounded-full opacity-80" />
-          )}
-          
-          {/* Top toolbar */}
-          <div className="flex items-center gap-1 px-3 pt-3 pb-1">
-            <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-lg transition-all group">
-              <PlusCircle className="w-4 h-4 group-hover:text-primary transition-colors" />
-              <span className="hidden sm:inline">Anexar</span>
-            </button>
-            <div className="w-px h-5 bg-border mx-1" />
-            <button className="p-2 hover:bg-surface-2 rounded-lg transition-colors group" title="Imagem">
-              <ImageIcon className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </button>
-            <button className="p-2 hover:bg-surface-2 rounded-lg transition-colors group" title="GIF">
-              <Gift className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </button>
-            <button className="p-2 hover:bg-surface-2 rounded-lg transition-colors group" title="Emoji">
-              <Smile className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </button>
-            <button className="p-2 hover:bg-surface-2 rounded-lg transition-colors group" title="Mencionar">
-              <AtSign className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </button>
-          </div>
-
-          {/* Input area */}
-          <div className="flex items-end gap-3 px-3 pb-3">
-            <div className="flex-1 relative">
-              <textarea
-                value={message}
-                onChange={(e) => {
-                  setMessage(e.target.value)
-                  // Auto-resize
-                  e.target.style.height = 'auto'
-                  e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px'
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder={`Mensagem para #${selectedChannel.name}`}
-                rows={1}
-                className="w-full bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground resize-none leading-relaxed py-2 min-h-[40px] max-h-[200px]"
-                style={{ height: 'auto' }}
-              />
-            </div>
-
-            {/* Send button */}
-            <button
-              onClick={handleSendMessage}
-              disabled={!message.trim()}
-              className={cn(
-                "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 shrink-0",
-                message.trim()
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 shadow-md shadow-primary/25"
-                  : "bg-surface-2 text-muted-foreground cursor-not-allowed"
-              )}
-            >
-              <Send className={cn(
-                "w-5 h-5 transition-transform",
-                message.trim() && "translate-x-0.5"
-              )} />
-            </button>
-          </div>
-
-          {/* Bottom hint */}
-          <div className="flex items-center justify-between px-3 pb-2 text-[11px] text-muted-foreground/60">
-            <span>Enter para enviar, Shift+Enter para nova linha</span>
-            <span className={cn(
-              "transition-opacity",
-              message.length > 0 ? "opacity-100" : "opacity-0"
-            )}>
-              {message.length}/2000
-            </span>
-          </div>
+      <div className="p-4">
+        <div className="bg-surface-2 rounded-lg flex items-end gap-2 p-2 border border-border">
+          <PlusCircle className="w-6 h-6 text-muted-foreground shrink-0 mb-2 cursor-pointer" />
+          <Gift className="w-6 h-6 text-muted-foreground shrink-0 mb-2 cursor-pointer hidden sm:block" />
+          <ImageIcon className="w-6 h-6 text-muted-foreground shrink-0 mb-2 cursor-pointer hidden sm:block" />
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Conversar em #${selectedChannel.name}`}
+            className="flex-1 bg-transparent border-0 resize-none outline-none text-foreground placeholder:text-muted-foreground min-h-[44px] max-h-32 py-3"
+            rows={1}
+          />
+          <Smile className="w-6 h-6 text-muted-foreground shrink-0 mb-2 cursor-pointer" />
+          <button
+            type="button"
+            onClick={() => void handleSendMessage()}
+            disabled={!message.trim()}
+            className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer shrink-0 mb-1"
+          >
+            <Send className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

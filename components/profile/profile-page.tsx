@@ -88,6 +88,15 @@ export function ProfilePage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-8">
+          <div className="flex justify-end mb-6">
+            <Button
+              variant="destructive"
+              onClick={logout}
+              className="cursor-pointer"
+            >
+              Sair da conta
+            </Button>
+          </div>
           {activeTab === 'profile' && (
             <div className="animate-fade-in">
               <h1 className="text-2xl font-bold text-foreground mb-2">Meu Perfil</h1>
@@ -218,9 +227,19 @@ export function ProfilePage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Ações irreversíveis para sua conta
                 </p>
-                <Button variant="destructive" size="sm">
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={logout}
+                    className="cursor-pointer"
+                  >
+                    Sair
+                  </Button>
+                  <Button variant="destructive" size="sm">
                   Excluir conta
                 </Button>
+                </div>
               </div>
             </div>
           )}
@@ -238,7 +257,7 @@ export function ProfilePage() {
                     { title: 'Mensagens diretas', desc: 'Notificar sobre novas mensagens diretas' },
                     { title: 'Menções', desc: 'Notificar quando alguém mencionar você' },
                     { title: 'Novos membros', desc: 'Notificar quando alguém entrar no servidor' },
-                    { title: 'Atualizações do sistema', desc: 'Receber novidades e atualizações do Fiadaputins' },
+                      { title: 'Atualizações do sistema', desc: 'Receber novidades e atualizações do Aura' },
                   ].map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div>
@@ -259,7 +278,7 @@ export function ProfilePage() {
             <div className="animate-fade-in">
               <h1 className="text-2xl font-bold text-foreground mb-2">Aparência</h1>
               <p className="text-muted-foreground mb-8">
-                Personalize a aparência do Fiadaputins
+                Personalize a aparência do Aura
               </p>
 
               <div className="glass rounded-xl p-6 mb-6">

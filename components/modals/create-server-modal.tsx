@@ -20,12 +20,14 @@ export function CreateServerModal() {
     if (!name.trim()) return
 
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
-    addServer(name, description)
-    setName('')
-    setDescription('')
-    setIsLoading(false)
+    try {
+      await addServer(name.trim(), description.trim() || undefined)
+      setName('')
+      setDescription('')
+      setModal('none')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleClose = () => {
@@ -105,7 +107,7 @@ export function CreateServerModal() {
 
           {/* Info text */}
           <p className="text-xs text-muted-foreground mb-6">
-            Ao criar um servidor, você concorda com as diretrizes da comunidade Fiadaputins.
+            Ao criar um servidor, você concorda com as diretrizes da comunidade Aura.
           </p>
 
           {/* Actions */}

@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2, Zap } from 'lucide-react'
+import { signIn } from 'next-auth/react'
 
 export function LoginForm() {
-  const { login, setView } = useApp()
+  const { setView } = useApp()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -25,12 +26,24 @@ export function LoginForm() {
     }
 
     setIsLoading(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    login(email, password)
-    setIsLoading(false)
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      })
+
+      if (!result?.ok) {
+        setError('Email ou senha inválidos')
+        return
+      }
+
+      setView('dashboard')
+    } catch {
+      setError('Falha ao entrar. Tente novamente.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -47,7 +60,7 @@ export function LoginForm() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
             <Zap className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Fiadaputins</h1>
+          <h1 className="text-3xl font-bold text-foreground">Aura</h1>
           <p className="text-muted-foreground mt-2">Entre na sua conta para continuar</p>
         </div>
 

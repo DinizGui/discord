@@ -1,6 +1,7 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useReducedMotion, motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { MessageSquare, Radio, Shield, Sparkles } from 'lucide-react'
 
@@ -49,7 +50,7 @@ function Header() {
             <span className="text-sm font-bold tracking-wide">F</span>
           </div>
           <span className="text-sm font-semibold tracking-[0.2em] text-zinc-200 uppercase">
-            Fiadaputins
+            Aura
           </span>
         </div>
 
@@ -73,6 +74,8 @@ function Header() {
 }
 
 function Hero() {
+  const reduceMotion = useReducedMotion() ?? false
+
   return (
     <section className="relative px-6 pb-24 pt-20 md:pb-32 md:pt-28">
       <div className="mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-[1.1fr_0.9fr]">
@@ -88,9 +91,21 @@ function Hero() {
 
           <h1 className="max-w-3xl text-5xl font-black tracking-tight text-white md:text-7xl">
             Um novo jeito de criar
-            <span className="block bg-gradient-to-r from-emerald-300 via-cyan-300 to-zinc-100 bg-clip-text text-transparent">
+            <motion.span
+              className="block bg-gradient-to-r from-emerald-300 via-cyan-300 to-zinc-100 bg-clip-text text-transparent"
+              style={{ backgroundSize: '200% 100%' }}
+              initial={reduceMotion ? undefined : { backgroundPosition: '0% 50%' }}
+              animate={
+                reduceMotion
+                  ? undefined
+                  : { backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }
+              }
+              transition={
+                reduceMotion ? undefined : { duration: 7, repeat: Infinity, ease: 'easeInOut' }
+              }
+            >
               conexões digitais
-            </span>
+            </motion.span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-400 md:text-xl">
@@ -169,25 +184,29 @@ function Hero() {
                 </div>
 
                 <div className="space-y-4">
-                  <ChatBubble
-                    name="Ana"
-                    message="Alguém topa fechar uma collab pro próximo projeto?"
-                  />
-                  <ChatBubble
-                    name="Lucas"
-                    message="Fecho demais. Também queria montar uma sala focada em música."
-                    active
-                  />
-                  <ChatBubble
-                    name="Marina"
-                    message="Dá pra criar um servidor só pra isso e separar por temas."
-                  />
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+                    <ChatBubble
+                      name="Ana"
+                      message="Alguém topa fechar uma collab pro próximo projeto?"
+                    />
+                  </motion.div>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.06 }}>
+                    <ChatBubble
+                      name="Lucas"
+                      message="Fecho demais. Também queria montar uma sala focada em música."
+                      active
+                    />
+                  </motion.div>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.12 }}>
+                    <ChatBubble
+                      name="Marina"
+                      message="Dá pra criar um servidor só pra isso e separar por temas."
+                    />
+                  </motion.div>
                 </div>
 
                 <div className="mt-auto pt-8">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-500">
-                    Envie uma mensagem...
-                  </div>
+                  <TypingBubble />
                 </div>
               </div>
             </div>
@@ -199,6 +218,8 @@ function Hero() {
 }
 
 function Features() {
+  const reduceMotion = useReducedMotion() ?? false
+
   return (
     <section id="features" className="px-6 py-20 md:py-28">
       <div className="mx-auto max-w-7xl">
@@ -227,8 +248,17 @@ function Features() {
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: index * 0.08 }}
+                transition={{ duration: 0.45, delay: reduceMotion ? 0 : index * 0.08 }}
                 className="group rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] transition hover:-translate-y-1 hover:bg-white/[0.05]"
+                whileHover={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        y: -6,
+                        boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.35)',
+                      }
+                }
+                whileTap={reduceMotion ? undefined : { scale: 0.99 }}
               >
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/8 text-emerald-300 ring-1 ring-white/10">
                   <Icon size={20} />
@@ -247,6 +277,8 @@ function Features() {
 }
 
 function PreviewSection() {
+  const reduceMotion = useReducedMotion() ?? false
+
   return (
     <section id="preview" className="px-6 py-20 md:py-28">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
@@ -279,11 +311,11 @@ function PreviewSection() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl border border-white/10 bg-zinc-900/70 p-5">
               <div className="text-sm text-zinc-500">Membros ativos</div>
-              <div className="mt-3 text-4xl font-black text-white">12.4k</div>
+              <AnimatedNumber value={12400} format="k" reduceMotion={reduceMotion} />
             </div>
             <div className="rounded-3xl border border-white/10 bg-zinc-900/70 p-5">
               <div className="text-sm text-zinc-500">Mensagens hoje</div>
-              <div className="mt-3 text-4xl font-black text-white">98k</div>
+              <AnimatedNumber value={98000} format="k" reduceMotion={reduceMotion} />
             </div>
             <div className="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 md:col-span-2">
               <div className="text-sm text-zinc-500">Ambientes criados para crescer</div>
@@ -348,14 +380,135 @@ function ChatBubble({
   )
 }
 
-function BackgroundEffects() {
+function AnimatedNumber({
+  value,
+  reduceMotion,
+  format,
+}: {
+  value: number
+  reduceMotion: boolean
+  format: 'k' | 'raw'
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [shownValue, setShownValue] = useState(0)
+
+  const formatted = useMemo(() => {
+    if (format === 'raw') return shownValue.toLocaleString('pt-BR')
+    // "k" format: 12.4k style
+    if (shownValue >= 1000) {
+      const k = shownValue / 1000
+      const isInteger = Math.abs(k - Math.round(k)) < 1e-8
+      const digits = k >= 10 ? (isInteger ? 0 : 1) : isInteger ? 0 : 2
+      return `${k.toFixed(digits).replace('.', ',')}k`
+    }
+    return shownValue.toString()
+  }, [format, shownValue])
+
+  useEffect(() => {
+    if (reduceMotion) {
+      setShownValue(value)
+      return
+    }
+
+    const el = ref.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return
+
+        const start = performance.now()
+        const duration = 950
+
+        const tick = (now: number) => {
+          const t = Math.min(1, (now - start) / duration)
+          // easeOutCubic
+          const eased = 1 - Math.pow(1 - t, 3)
+          setShownValue(Math.round(value * eased))
+          if (t < 1) requestAnimationFrame(tick)
+        }
+
+        requestAnimationFrame(tick)
+        observer.disconnect()
+      },
+      { threshold: 0.35 }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [reduceMotion, value])
+
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="absolute left-[-10%] top-[-8%] h-[420px] w-[420px] rounded-full bg-emerald-500/10 blur-3xl" />
-      <div className="absolute right-[-10%] top-[15%] h-[380px] w-[380px] rounded-full bg-cyan-500/10 blur-3xl" />
-      <div className="absolute bottom-[-12%] left-[25%] h-[340px] w-[340px] rounded-full bg-white/5 blur-3xl" />
+    <div ref={ref} className="mt-3 text-4xl font-black text-white">
+      {formatted}
+    </div>
+  )
+}
+
+function TypingBubble() {
+  const reduceMotion = useReducedMotion()
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-500">
+      <span className="inline-flex items-center gap-1">
+        Envie uma mensagem
+        {!reduceMotion && (
+          <motion.span
+            aria-hidden
+            className="inline-flex"
+            initial={{ opacity: 0.4 }}
+            animate={{ opacity: [0.35, 1, 0.35] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <span className="mx-[1px]">.</span>
+            <motion.span
+              initial={{ opacity: 0.2 }}
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0.15 }}
+            >
+              .
+            </motion.span>
+            <motion.span
+              initial={{ opacity: 0.2 }}
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+            >
+              .
+            </motion.span>
+          </motion.span>
+        )}
+        {reduceMotion && <span aria-hidden>...</span>}
+      </span>
+    </div>
+  )
+}
+
+function BackgroundEffects() {
+  const reduceMotion = useReducedMotion()
+
+  return (
+    <motion.div
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      animate={reduceMotion ? undefined : { opacity: [0.95, 1, 0.95] }}
+      transition={reduceMotion ? undefined : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      <motion.div
+        className="absolute left-[-10%] top-[-8%] h-[420px] w-[420px] rounded-full bg-emerald-500/10 blur-3xl"
+        animate={reduceMotion ? undefined : { y: [0, -22, 0], x: [0, 16, 0] }}
+        transition={reduceMotion ? undefined : { duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute right-[-10%] top-[15%] h-[380px] w-[380px] rounded-full bg-cyan-500/10 blur-3xl"
+        animate={reduceMotion ? undefined : { y: [0, 18, 0], x: [0, -12, 0] }}
+        transition={reduceMotion ? undefined : { duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute bottom-[-12%] left-[25%] h-[340px] w-[340px] rounded-full bg-white/5 blur-3xl"
+        animate={reduceMotion ? undefined : { y: [0, 14, 0] }}
+        transition={reduceMotion ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+      />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px] opacity-[0.12]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_35%)]" />
-    </div>
+    </motion.div>
   )
 }

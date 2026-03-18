@@ -21,14 +21,20 @@ export function CreateChannelModal() {
     e.preventDefault()
     if (!name.trim()) return
 
+    if (type === 'voice') {
+      window.alert('Canais de voz ainda não estão disponíveis — use um canal de texto.')
+      return
+    }
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 600))
-    
-    addChannel(name, description)
-    setName('')
-    setDescription('')
-    setType('text')
-    setIsLoading(false)
+    try {
+      await addChannel(name, description.trim() || undefined)
+      setName('')
+      setDescription('')
+      setType('text')
+      setModal('none')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleClose = () => {

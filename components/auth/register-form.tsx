@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2, Zap, Check, X } from 'lucide-react'
+import { signIn } from 'next-auth/react'
 
 export function RegisterForm() {
-  const { register, setView } = useApp()
+  const { setView } = useApp()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -46,12 +47,37 @@ export function RegisterForm() {
     }
 
     setIsLoading(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    
-    register(name, email, password)
-    setIsLoading(false)
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.message ?? 'Erro ao criar conta')
+        return
+      }
+
+      const signInRes = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      })
+
+      if (!signInRes?.ok) {
+        setError('Conta criada, mas não foi possível entrar')
+        return
+      }
+
+      setView('dashboard')
+    } catch {
+      setError('Falha ao criar conta. Tente novamente.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const PasswordCheck = ({ valid, label }: { valid: boolean; label: string }) => (
@@ -76,7 +102,7 @@ export function RegisterForm() {
             <Zap className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Criar Conta</h1>
-          <p className="text-muted-foreground mt-2">Junte-se ao Fiadaputins e conecte-se</p>
+            <p className="text-muted-foreground mt-2">Junte-se ao Aura e conecte-se</p>
         </div>
 
         {/* Form Card */}

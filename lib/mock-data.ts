@@ -1,4 +1,4 @@
-// Mock data for Fiadaputins Chat
+// Mock data for Aura Chat
 
 export interface User {
   id: string
@@ -215,6 +215,31 @@ export const messages: Message[] = [
   },
 ]
 
+// Mock DM messages (channelId is `dm-${dmUserId}`)
+export const dmMessages: Message[] = [
+  {
+    id: 'dm-1',
+    channelId: 'dm-user-2',
+    userId: 'user-2',
+    content: 'Ei, bora organizar uma collab rapidinha?',
+    timestamp: new Date(Date.now() - 3600000 * 3.2),
+  },
+  {
+    id: 'dm-2',
+    channelId: 'dm-user-2',
+    userId: 'user-1',
+    content: 'Fecho! Me manda o tema e a data.',
+    timestamp: new Date(Date.now() - 3600000 * 2.4),
+  },
+  {
+    id: 'dm-3',
+    channelId: 'dm-user-5',
+    userId: 'user-5',
+    content: 'Você ainda está usando Next 16 com Turbopack?',
+    timestamp: new Date(Date.now() - 3600000 * 1.1),
+  },
+]
+
 // Helper functions
 export function getServerChannels(serverId: string): Channel[] {
   return channels.filter(ch => ch.serverId === serverId)
@@ -222,6 +247,10 @@ export function getServerChannels(serverId: string): Channel[] {
 
 export function getChannelMessages(channelId: string): Message[] {
   return messages.filter(msg => msg.channelId === channelId)
+}
+
+export function getDMConversationMessages(dmUserId: string): Message[] {
+  return dmMessages.filter(msg => msg.channelId === `dm-${dmUserId}`)
 }
 
 export function getUserById(userId: string): User | undefined {

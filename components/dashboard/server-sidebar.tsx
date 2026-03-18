@@ -2,28 +2,21 @@
 
 import { useApp } from '@/lib/app-context'
 import { cn } from '@/lib/utils'
-import { Plus, Settings, Zap } from 'lucide-react'
+import { LogOut, Plus, Settings, Zap } from 'lucide-react'
 import Image from 'next/image'
 
 export function ServerSidebar() {
-  const { servers, selectedServer, selectServer, setModal, setView } = useApp()
+  const { servers, selectedServer, selectServer, setModal, setView, logout } = useApp()
 
   return (
     <div className="flex flex-col items-center w-[72px] bg-sidebar py-4 gap-2 border-r border-sidebar-border">
-      {/* Home / Logo */}
-      <button
-        onClick={() => selectServer(null)}
-        className={cn(
-          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 group",
-          "bg-primary/10 hover:bg-primary/20 hover:rounded-xl",
-          !selectedServer && "bg-primary rounded-xl"
-        )}
-      >
-        <Zap className={cn(
-          "w-6 h-6 transition-colors",
-          !selectedServer ? "text-primary-foreground" : "text-primary group-hover:text-primary"
-        )} />
-      </button>
+      {/* Aura logo (no "Home" navigation; Home lives in SecondarySidebar) */}
+      <div className={cn(
+        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200",
+        "bg-primary/10 ring-1 ring-primary/20 cursor-pointer"
+      )}>
+        <Zap className="w-6 h-6 text-primary" />
+      </div>
 
       {/* Divider */}
       <div className="w-8 h-[2px] bg-sidebar-border my-2" />
@@ -41,7 +34,7 @@ export function ServerSidebar() {
             <button
               onClick={() => selectServer(server)}
               className={cn(
-                "w-12 h-12 rounded-2xl overflow-hidden transition-all duration-200 hover:rounded-xl relative",
+                "w-12 h-12 rounded-2xl overflow-hidden transition-all duration-200 hover:rounded-xl relative cursor-pointer",
                 selectedServer?.id === server.id && "rounded-xl"
               )}
               style={{ animationDelay: `${index * 50}ms` }}
@@ -77,6 +70,15 @@ export function ServerSidebar() {
         className="w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-2 hover:bg-surface-3 hover:rounded-xl transition-all duration-200 mt-2"
       >
         <Settings className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+      </button>
+
+      {/* Logout */}
+      <button
+        onClick={logout}
+        className="w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-2 hover:bg-surface-3 hover:rounded-xl transition-all duration-200 mt-2 cursor-pointer"
+        type="button"
+      >
+        <LogOut className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
       </button>
     </div>
   )

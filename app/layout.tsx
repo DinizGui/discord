@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { AppSessionProvider } from "@/components/session-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,11 +18,11 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Fiadaputins",
-    template: "%s | Fiadaputins",
+    default: "Aura",
+    template: "%s | Aura",
   },
   description: "Conecte-se com comunidades através de conversas em tempo real.",
-  applicationName: "Fiadaputins",
+  applicationName: "Aura",
   keywords: [
     "chat",
     "comunidade",
@@ -34,16 +35,16 @@ export const metadata: Metadata = {
   creator: "Seu Nome",
   metadataBase: new URL("https://seusite.com"),
   openGraph: {
-    title: "Fiadaputins",
+    title: "Aura",
     description: "Conecte-se com comunidades através de conversas em tempo real.",
     url: "https://seusite.com",
-    siteName: "Fiadaputins",
+    siteName: "Aura",
     locale: "pt_BR",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fiadaputins",
+    title: "Aura",
     description: "Conecte-se com comunidades através de conversas em tempo real.",
   },
   icons: {
@@ -73,7 +74,7 @@ export default function RootLayout({
       >
         <div className="relative min-h-screen overflow-x-hidden">
           <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(120,119,198,0.15),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_30%)]" />
-          {children}
+          <AppSessionProvider>{children}</AppSessionProvider>
         </div>
         <Analytics />
       </body>
