@@ -54,7 +54,7 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  let body: { name?: string; description?: string }
+  let body: { name?: string; description?: string; type?: string }
   try {
     body = await req.json()
   } catch {
@@ -66,11 +66,13 @@ export async function POST(
     return NextResponse.json({ error: 'Nome do canal inválido' }, { status: 400 })
   }
 
+  const chType = body.type === 'voice' ? 'voice' : 'text'
+
   const c = await prisma.channel.create({
     data: {
       serverId,
       name: raw,
-      type: 'text',
+      type: chType,
       description: body.description?.trim() || null,
     },
   })
@@ -79,7 +81,7 @@ export async function POST(
     id: c.id,
     serverId: c.serverId,
     name: c.name,
-    type: 'text',
+    type: (c.type === 'voice' ? 'voice' : 'text') as 'text' | 'voice',
     description: c.description ?? undefined,
   }
 

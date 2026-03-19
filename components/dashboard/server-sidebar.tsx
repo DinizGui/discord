@@ -9,7 +9,7 @@ export function ServerSidebar() {
   const { servers, selectedServer, selectServer, setModal, setView, logout } = useApp()
 
   return (
-    <div className="flex flex-col items-center w-[72px] bg-sidebar py-4 gap-2 border-r border-sidebar-border">
+    <div className="flex w-[76px] shrink-0 flex-col items-center gap-3 border-r border-white/[0.06] bg-zinc-950/80 py-4 sm:w-[80px] sm:rounded-r-2xl sm:shadow-lg">
       {/* Aura logo (no "Home" navigation; Home lives in SecondarySidebar) */}
       <div className={cn(
         "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200",
@@ -75,10 +75,10 @@ export function ServerSidebar() {
       {/* Logout */}
       <button
         onClick={logout}
-        className="w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-2 hover:bg-surface-3 hover:rounded-xl transition-all duration-200 mt-2 cursor-pointer"
+        className="mt-2 flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl bg-zinc-900/80 transition-all hover:rounded-xl hover:bg-zinc-800"
         type="button"
       >
-        <LogOut className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+        <LogOut className="h-5 w-5 text-zinc-500 transition-colors hover:text-zinc-200" />
       </button>
     </div>
   )

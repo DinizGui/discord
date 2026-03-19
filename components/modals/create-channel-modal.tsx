@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '@/lib/app-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,11 +9,15 @@ import { X, Hash, Volume2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function CreateChannelModal() {
-  const { modal, setModal, addChannel, selectedServer } = useApp()
+  const { modal, setModal, addChannel, selectedServer, createChannelKind } = useApp()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState<'text' | 'voice'>('text')
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (modal === 'create-channel') setType(createChannelKind)
+  }, [modal, createChannelKind])
 
   if (modal !== 'create-channel') return null
 
@@ -21,16 +25,11 @@ export function CreateChannelModal() {
     e.preventDefault()
     if (!name.trim()) return
 
-    if (type === 'voice') {
-      window.alert('Canais de voz ainda não estão disponíveis — use um canal de texto.')
-      return
-    }
     setIsLoading(true)
     try {
-      await addChannel(name, description.trim() || undefined)
+      await addChannel(name, description.trim() || undefined, type)
       setName('')
       setDescription('')
-      setType('text')
       setModal('none')
     } finally {
       setIsLoading(false)
@@ -41,7 +40,6 @@ export function CreateChannelModal() {
     setModal('none')
     setName('')
     setDescription('')
-    setType('text')
   }
 
   return (

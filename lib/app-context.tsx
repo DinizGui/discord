@@ -1,13 +1,29 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import type { ChatUser, ChatServer, ChatChannel } from '@/lib/chat-types'
 import { dbUserToChatUser } from '@/lib/chat-types'
+import type { Session } from 'next-auth'
 
 type View = 'login' | 'register' | 'dashboard' | 'profile'
 type Modal = 'none' | 'create-server' | 'create-channel' | 'server-settings' | 'user-settings'
 type CurrentView = 'home' | 'dm' | 'server'
+
+export type VoiceCallPanel = {
+  kind: 'server' | 'dm'
+  title: string
+  subtitle?: string
+  peerAvatar?: string
+  peerName?: string
+}
+
+type VoiceCallReturnTo = {
+  currentView: CurrentView
+  selectedDM: ChatUser | null
+  selectedServer: ChatServer | null
+  selectedChannel: ChatChannel | null
+}
 
 export interface PendingIncoming {
   id: string
@@ -38,6 +54,8 @@ interface AppState {
   selectedChannel: ChatChannel | null
   servers: ChatServer[]
   serversLoading: boolean
+  /** Quando você abre um canal `voice` no servidor, guarda o último canal de texto para voltar. */
+  closeServerVoiceCall: () => void
   setView: (view: View) => void
   setModal: (modal: Modal) => void
   logout: () => void
@@ -49,7 +67,13 @@ interface AppState {
   selectServer: (server: ChatServer | null) => void
   selectChannel: (channel: ChatChannel | null) => void
   addServer: (name: string, description?: string) => Promise<void>
-  addChannel: (name: string, description?: string) => Promise<void>
+  addChannel: (name: string, description?: string, channelType?: 'text' | 'voice') => Promise<void>
+  voiceCall: VoiceCallPanel | null
+  openVoiceCall: (panel: VoiceCallPanel) => void
+  closeVoiceCall: () => void
+  /** Ao abrir modal de criar canal */
+  createChannelKind: 'text' | 'voice'
+  openCreateChannelModal: (kind: 'text' | 'voice') => void
   refreshServers: () => Promise<void>
 }
 
@@ -69,11 +93,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [serverChannels, setServerChannels] = useState<ChatChannel[]>([])
   const [channelsLoading, setChannelsLoading] = useState(false)
 
+  const [serverVoiceReturnToChannel, setServerVoiceReturnToChannel] = useState<ChatChannel | null>(null)
+
   const [friends, setFriends] = useState<ChatUser[]>([])
   const [pendingOutgoing, setPendingOutgoing] = useState<string[]>([])
   const [pendingIncoming, setPendingIncoming] = useState<PendingIncoming[]>([])
+  const [voiceCall, setVoiceCall] = useState<VoiceCallPanel | null>(null)
+  const [voiceCallReturnTo, setVoiceCallReturnTo] = useState<VoiceCallReturnTo | null>(null)
+  const [createChannelKind, setCreateChannelKind] = useState<'text' | 'voice'>('text')
 
   const { data: session, status } = useSession()
+  const prevAuthStatusRef = useRef<string | null>(null)
 
   const refreshServers = useCallback(async () => {
     setServersLoading(true)
@@ -113,7 +143,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setServerChannels(list)
       setSelectedChannel((prev) => {
         if (prev && list.some((c) => c.id === prev.id)) return prev
-        return list[0] ?? null
+        const firstText = list.find((c) => c.type === 'text')
+        return firstText ?? list[0] ?? null
       })
     } finally {
       setChannelsLoading(false)
@@ -142,15 +173,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setUser(mappedUser)
       setIsAuthenticated(true)
-      setCurrentView('home')
-      setSelectedDM(null)
-      setSelectedServer(null)
-      setSelectedChannel(null)
-      setServerChannels([])
-      setView((prev) => (prev === 'login' || prev === 'register' ? 'dashboard' : prev))
+      // Evita "pular" de tela (ex.: Alt+Tab) quando a sessão é revalidada.
+      // Reset total só no primeiro login (quando saía de algo != authenticated).
+      if (prevAuthStatusRef.current !== 'authenticated') {
+        setCurrentView('home')
+        setSelectedDM(null)
+        setSelectedServer(null)
+        setSelectedChannel(null)
+        setServerChannels([])
+        setView((prev) => (prev === 'login' || prev === 'register' ? 'dashboard' : prev))
 
-      void refreshServers()
-      void refreshFriends()
+        void refreshServers()
+        void refreshFriends()
+      }
     }
 
     if (status === 'unauthenticated') {
@@ -167,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPendingIncoming([])
       setView('login')
     }
+    prevAuthStatusRef.current = status
   }, [status, session, refreshServers, refreshFriends])
 
   useEffect(() => {
@@ -255,10 +291,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSelectedDM(null)
     setSelectedServer(server)
     setSelectedChannel(null)
+    setServerVoiceReturnToChannel(null)
     setModal('none')
   }
 
   const selectChannel = (channel: ChatChannel | null) => {
+    // Discord-like: ao clicar num canal de voz, não desmontamos a área principal de chat.
+    // A call vira um painel flutuante e o usuário pode navegar nos canais de texto normalmente.
+    if (channel?.type === 'voice') {
+      if (selectedServer) {
+        openVoiceCall({
+          kind: 'server',
+          title: `Canal ${channel.name}`,
+          subtitle: `${selectedServer.name} · voz`,
+        })
+      }
+      return
+    }
+
     setSelectedChannel(channel)
   }
 
@@ -282,12 +332,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const addChannel = async (name: string, description?: string) => {
+  const openVoiceCall = (panel: VoiceCallPanel) => {
+    setVoiceCallReturnTo({
+      currentView,
+      selectedDM,
+      selectedServer,
+      selectedChannel,
+    })
+    setVoiceCall(panel)
+    setModal('none')
+  }
+
+  const closeVoiceCall = () => {
+    setVoiceCall(null)
+    setVoiceCallReturnTo(null)
+  }
+
+  const closeServerVoiceCall = () => {
+    // Só faz sentido quando estamos em um servidor.
+    setCurrentView('server')
+    if (serverVoiceReturnToChannel) {
+      setSelectedChannel(serverVoiceReturnToChannel)
+    } else if (selectedServer?.id) {
+      const firstText = serverChannels.find((c) => c.type === 'text')
+      setSelectedChannel(firstText ?? null)
+    }
+    setServerVoiceReturnToChannel(null)
+  }
+
+  const openCreateChannelModal = (kind: 'text' | 'voice') => {
+    setCreateChannelKind(kind)
+    setModal('create-channel')
+  }
+
+  const addChannel = async (
+    name: string,
+    description?: string,
+    channelType: 'text' | 'voice' = 'text',
+  ) => {
     if (!selectedServer) return
     const res = await fetch(`/api/servers/${selectedServer.id}/channels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ name, description, type: channelType }),
     })
     if (!res.ok) return
     const data = await res.json()
@@ -322,6 +409,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         selectedChannel,
         servers: serverList,
         serversLoading,
+        closeServerVoiceCall,
         setView,
         setModal,
         logout,
@@ -333,6 +421,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addServer,
         addChannel,
         refreshServers,
+        voiceCall,
+        openVoiceCall,
+        closeVoiceCall,
+        createChannelKind,
+        openCreateChannelModal,
       }}
     >
       {children}

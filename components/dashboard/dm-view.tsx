@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useApp } from '@/lib/app-context'
 import { formatTimestamp, type ChatMessage } from '@/lib/chat-types'
 import { cn } from '@/lib/utils'
-import { AtSign, Send } from 'lucide-react'
+import { AtSign, Send, Phone } from 'lucide-react'
 
 function DMMessageBubble({ message }: { message: ChatMessage }) {
   const { currentUser } = useApp()
@@ -41,7 +41,7 @@ function DMMessageBubble({ message }: { message: ChatMessage }) {
 }
 
 export function DMView() {
-  const { selectedDM, currentUser } = useApp()
+  const { selectedDM, currentUser, openVoiceCall } = useApp()
   const [text, setText] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -166,18 +166,34 @@ export function DMView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background min-w-0">
-      <div className="h-14 px-4 flex items-center gap-3 border-b border-border">
-        <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0">
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           <Image src={selectedDM.avatar || '/placeholder.svg'} alt={selectedDM.name} fill className="object-cover" />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="font-semibold">{selectedDM.name}</div>
           <div className="text-xs text-muted-foreground">Mensagem direta</div>
         </div>
+        <button
+          type="button"
+          onClick={() =>
+            openVoiceCall({
+              kind: 'dm',
+              title: 'Chamada de voz',
+              subtitle: selectedDM.name,
+              peerName: selectedDM.name,
+              peerAvatar: selectedDM.avatar,
+            })
+          }
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600/20 text-emerald-400 transition hover:bg-emerald-600/30"
+          title="Ligação de voz"
+        >
+          <Phone className="h-5 w-5" />
+        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar py-4">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto py-4">
         {messages.length === 0 ? (
           <div className="text-center text-muted-foreground text-sm py-8">Nenhuma mensagem ainda. Diga oi!</div>
         ) : (

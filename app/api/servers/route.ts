@@ -79,6 +79,14 @@ export async function POST(req: Request) {
         description: 'Canal geral',
       },
     })
+    await tx.channel.create({
+      data: {
+        serverId: s.id,
+        name: 'voz',
+        type: 'voice',
+        description: 'Canal de voz',
+      },
+    })
     return s
   })
 

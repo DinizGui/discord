@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppSessionProvider } from "@/components/session-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -74,7 +75,10 @@ export default function RootLayout({
       >
         <div className="relative min-h-screen overflow-x-hidden">
           <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(120,119,198,0.15),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_30%)]" />
-          <AppSessionProvider>{children}</AppSessionProvider>
+          <AppSessionProvider>
+            {children}
+            <Toaster richColors position="top-center" />
+          </AppSessionProvider>
         </div>
         <Analytics />
       </body>
